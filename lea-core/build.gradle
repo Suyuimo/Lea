@@ -16,5 +16,5 @@ dependencies {
 }
 
 application {
-  // TODO für Zukunft
+  mainClass = "de.weinschenk.lea.core.Main"
 }
