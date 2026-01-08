@@ -8,7 +8,7 @@ import java.util.Optional;
 public class Main {
 
     public static void main(String[] args) {
-        var registry = new ModuleRegistry();
+        var registry = new ModuleRegistry(Path.of("..", "modules").normalize());
         var ctx = new CoreBotContext(Path.of("lea-test.txt"));
 
         // Fake incoming message (bis Signal dran ist)
@@ -41,3 +41,4 @@ public class Main {
                 );
     }
 }
+

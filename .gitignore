@@ -25,3 +25,5 @@ lea-test.txt
 # === Local-only settings ===
 settings.local.gradle
 
+# Lea Module
+modules/

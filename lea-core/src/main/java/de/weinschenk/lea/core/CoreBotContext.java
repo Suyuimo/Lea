@@ -18,7 +18,6 @@ public class CoreBotContext implements BotContext {
 
     @Override
     public void reply(CommandRequest request, String message) {
-        // In Schritt "Signal" senden wir hier wirklich zurück.
         System.out.println("[Lea][Reply] to=" + request.sender() + " msg=" + message);
     }
 

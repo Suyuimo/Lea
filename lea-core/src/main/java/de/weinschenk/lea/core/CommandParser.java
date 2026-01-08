@@ -28,3 +28,4 @@ public final class CommandParser {
         return Optional.of(new ParsedCommand(moduleId, command, args));
     }
 }
+

@@ -2,20 +2,31 @@ package de.weinschenk.lea.core;
 
 import de.weinschenk.lea.api.LeaModule;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ServiceLoader;
+import java.nio.file.Path;
+import java.util.*;
 
 public class ModuleRegistry {
 
     private final Map<String, LeaModule> modules = new HashMap<>();
+    private final List<JarModuleLoader.LoadedJar> loadedJars = new ArrayList<>();
 
-    public ModuleRegistry() {
-        ServiceLoader<LeaModule> loader = ServiceLoader.load(LeaModule.class);
-        for (LeaModule module : loader) {
-            modules.put(module.id().toLowerCase(), module);
-            System.out.println("[Lea] Loaded module: " + module.id());
+    public ModuleRegistry(Path modulesDir) {
+        var loader = new JarModuleLoader();
+        loadedJars.addAll(loader.loadFromDirectory(modulesDir));
+
+        for (var jar : loadedJars) {
+            for (LeaModule module : jar.modules()) {
+                String id = module.id().toLowerCase();
+
+                if (modules.containsKey(id)) {
+                    System.out.println("[Lea] WARNING: duplicate module id '" + id
+                            + "'; keeping first, ignoring from " + jar.jar().getFileName());
+                    continue;
+                }
+
+                modules.put(id, module);
+                System.out.println("[Lea] Loaded module: " + module.id() + " from " + jar.jar().getFileName());
+            }
         }
     }
 
