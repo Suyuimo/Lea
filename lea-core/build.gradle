@@ -1,0 +1,20 @@
+plugins {
+  id 'application'
+}
+
+group = "de.weinschenk.lea"
+version = "0.1.0"
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
+}
+
+dependencies {
+  implementation project(":lea-api")
+}
+
+application {
+  // TODO für Zukunft
+}
