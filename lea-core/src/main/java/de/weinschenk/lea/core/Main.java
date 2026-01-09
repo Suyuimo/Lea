@@ -8,23 +8,43 @@ import java.util.Optional;
 public class Main {
 
     public static void main(String[] args) {
-        var registry = new ModuleRegistry(Path.of("..", "modules").normalize());
-        var ctx = new CoreBotContext(Path.of("lea-test.txt"));
 
-        // Fake incoming message (bis Signal dran ist)
+        // === Config laden ===
+        Path configPath = Path.of("..", "config", "lea.yml").normalize();
+        LeaConfig config = ConfigLoader.load(configPath);
+
+        Authz authz = new Authz(config);
+
+        // === Module laden ===
+        Path modulesDir = Path.of(config.modulesDir()).normalize();
+        ModuleRegistry registry = new ModuleRegistry(modulesDir);
+
+        // === Bot Context ===
+        CoreBotContext ctx = new CoreBotContext(Path.of("lea-test.txt"));
+
+        // === Fake Message (Debug) ===
         String sender = "ALLOWLIST_NUMMER_1";
+        Optional<String> groupId = Optional.empty();
         String text = "minecraft start";
 
-        onIncomingMessage(registry, ctx, sender, Optional.empty(), text);
+        onIncomingMessage(authz, registry, ctx, sender, groupId, text);
     }
 
     static void onIncomingMessage(
+            Authz authz,
             ModuleRegistry registry,
             CoreBotContext ctx,
             String sender,
             Optional<String> groupId,
             String rawText
     ) {
+
+        if (!authz.isAllowed(sender, groupId)) {
+            ctx.log("Unauthorized message ignored. sender=" + sender +
+                    " groupId=" + groupId.orElse("<dm>"));
+            return;
+        }
+
         var parsedOpt = CommandParser.parse(rawText);
         if (parsedOpt.isEmpty()) {
             ctx.log("Ignored message (not a command): " + rawText);
@@ -32,7 +52,14 @@ public class Main {
         }
 
         var parsed = parsedOpt.get();
-        var req = new CommandRequest(sender, groupId, parsed.command(), parsed.args(), rawText);
+
+        CommandRequest req = new CommandRequest(
+                sender,
+                groupId,
+                parsed.command(),
+                parsed.args(),
+                rawText
+        );
 
         registry.get(parsed.moduleId())
                 .ifPresentOrElse(

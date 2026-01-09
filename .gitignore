@@ -27,3 +27,7 @@ settings.local.gradle
 
 # Lea Module
 modules/
+
+
+# Config Folder
+config/lea.yml

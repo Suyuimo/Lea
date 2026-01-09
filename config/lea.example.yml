@@ -1,0 +1,9 @@
+lea:
+  modulesDir: ../modules
+
+  allowlist:
+    senders:
+      - "+4912345678"
+      - "+4911111111"
+    groups:
+      - "GROUP_ID_EXAMPLE"

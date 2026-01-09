@@ -13,6 +13,8 @@ java {
 
 dependencies {
   implementation project(":lea-api")
+
+  implementation "org.yaml:snakeyaml:2.2"
 }
 
 application {
