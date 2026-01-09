@@ -28,8 +28,10 @@ public class ConfigLoader {
                 throw new RuntimeException("Missing or invalid 'lea' section in config.");
             }
 
+            // ---- lea.modulesDir ----
             String modulesDir = asString(lea.get("modulesDir"), "lea.modulesDir");
 
+            // ---- lea.allowlist ----
             Object allowObj = lea.get("allowlist");
             if (!(allowObj instanceof Map<?, ?> allow)) {
                 throw new RuntimeException("Missing or invalid 'lea.allowlist' section.");
@@ -37,10 +39,21 @@ public class ConfigLoader {
 
             Set<String> senders = asStringSet(allow.get("senders"), "lea.allowlist.senders");
             Set<String> groups  = asStringSet(allow.get("groups"), "lea.allowlist.groups");
-
             LeaConfig.Allowlist allowlist = new LeaConfig.Allowlist(senders, groups);
 
-            return new LeaConfig(modulesDir, allowlist);
+            // ---- lea.signal ----
+            Object signalObj = lea.get("signal");
+            if (!(signalObj instanceof Map<?, ?> signal)) {
+                throw new RuntimeException("Missing or invalid 'lea.signal' section.");
+            }
+
+            String rpcUrl = asString(signal.get("rpcUrl"), "lea.signal.rpcUrl");
+            String eventsUrl = asString(signal.get("eventsUrl"), "lea.signal.eventsUrl");
+            String account = asString(signal.get("account"), "lea.signal.account");
+            LeaConfig.Signal signalCfg = new LeaConfig.Signal(rpcUrl, eventsUrl, account);
+
+            // ---- final ----
+            return new LeaConfig(modulesDir, allowlist, signalCfg);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to load config: " + configFile, e);
@@ -55,12 +68,12 @@ public class ConfigLoader {
         return s;
     }
 
-    @SuppressWarnings("unchecked")
     private static Set<String> asStringSet(Object v, String path) {
-        if (v == null) return Set.of(); // allow empty
+        if (v == null) return Set.of(); // allow empty lists
         if (!(v instanceof List<?> list)) {
             throw new RuntimeException("Invalid config value at " + path + " (expected list).");
         }
+
         Set<String> out = new LinkedHashSet<>();
         for (Object item : list) {
             if (!(item instanceof String s) || s.isBlank()) {

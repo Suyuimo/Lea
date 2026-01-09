@@ -4,13 +4,14 @@ import java.util.Set;
 
 public record LeaConfig(
         String modulesDir,
-        Allowlist allowlist
+        Allowlist allowlist,
+        Signal signal
 ) {
+    public record Allowlist(Set<String> senders, Set<String> groups) {}
 
-    public record Allowlist(
-            Set<String> senders,
-            Set<String> groups
-    ) {}
+    public record Signal(String rpcUrl, String eventsUrl, String account) {}
+    
+    public record LeaConfig(String modulesDir, Allowlist allowlist, Signal signal) { ... }
 
     public boolean isSenderAllowed(String sender) {
         return sender != null
