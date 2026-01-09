@@ -4,8 +4,13 @@ import de.weinschenk.lea.api.LeaModule;
 
 import java.nio.file.Path;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class ModuleRegistry {
+
+    private static final Logger log = LoggerFactory.getLogger(ModuleRegistry.class);    
 
     private final Map<String, LeaModule> modules = new HashMap<>();
     private final List<JarModuleLoader.LoadedJar> loadedJars = new ArrayList<>();
@@ -19,13 +24,12 @@ public class ModuleRegistry {
                 String id = module.id().toLowerCase();
 
                 if (modules.containsKey(id)) {
-                    System.out.println("[Lea] WARNING: duplicate module id '" + id
-                            + "'; keeping first, ignoring from " + jar.jar().getFileName());
+                    log.warn("Duplicate module id '{}', ignoring {}", id, jar.jar().getFileName());
                     continue;
                 }
 
                 modules.put(id, module);
-                System.out.println("[Lea] Loaded module: " + module.id() + " from " + jar.jar().getFileName());
+                log.info("Loaded module '{}' from {}", module.id(), jar.jar().getFileName());
             }
         }
     }
