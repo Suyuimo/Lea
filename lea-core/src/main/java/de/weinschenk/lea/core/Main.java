@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 public class Main {
@@ -71,6 +72,12 @@ public class Main {
         if (!authz.isAllowed(sender, roomId)) {
             log.warn("Unauthorized message ignored. sender={} roomId={}",
                     sender, roomId.orElse("<unknown>"));
+            return;
+        }
+
+        // === Ping ===
+        if (rawText.trim().equalsIgnoreCase("ping")) {
+            ctx.reply(new CommandRequest(sender, roomId, "ping", List.of(), rawText), "Ja, ich bin online.");
             return;
         }
 

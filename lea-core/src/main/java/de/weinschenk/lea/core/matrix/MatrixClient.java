@@ -64,15 +64,44 @@ public class MatrixClient {
     /** Startet einen Sync-Loop (Long Polling). Der Consumer wird pro eingehender Nachricht aufgerufen. */
     public Thread startEventsLoop(Consumer<MatrixEventParser.Incoming> onMessage) {
         return Thread.ofVirtual().name("matrix-sync").start(() -> {
+            log.info("Matrix sync loop started. Homeserver: {}", homeserverUrl);
             String since = null;
 
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     since = syncOnce(since, onMessage);
                 } catch (Exception e) {
-                    log.error("Sync error, retrying…", e);
+                    log.error("Sync error, retrying in 2s…", e);
                     try { Thread.sleep(2000); } catch (InterruptedException ie) { return; }
                 }
+            }
+        });
+    }
+
+    private void acceptPendingInvites(JsonNode syncResponse) {
+        JsonNode invitedRooms = syncResponse.path("rooms").path("invite");
+        if (invitedRooms.isMissingNode()) return;
+
+        invitedRooms.fieldNames().forEachRemaining(roomId -> {
+            log.info("Accepting invite to room {}", roomId);
+            try {
+                String encodedRoomId = URLEncoder.encode(roomId, StandardCharsets.UTF_8);
+                String url = homeserverUrl + "/rooms/" + encodedRoomId + "/join";
+
+                HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{}", StandardCharsets.UTF_8))
+                        .build();
+
+                HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                if (resp.statusCode() == 200) {
+                    log.info("Joined room {}", roomId);
+                } else {
+                    log.error("Failed to join room {}: HTTP {} {}", roomId, resp.statusCode(), resp.body());
+                }
+            } catch (Exception e) {
+                log.error("Error joining room {}", roomId, e);
             }
         });
     }
@@ -94,13 +123,25 @@ public class MatrixClient {
             throw new RuntimeException("Sync failed: HTTP " + resp.statusCode() + ": " + resp.body());
         }
 
-        JsonNode root = om.readTree(resp.body());
+        String rawBody = resp.body();
+        JsonNode root = om.readTree(rawBody);
         String nextBatch = root.path("next_batch").asText(null);
-
-        // Beim ersten Sync (since == null) Events ignorieren — nur next_batch merken
+        log.debug("Sync response received. next_batch={}", nextBatch);
         if (since != null) {
+            log.debug("Raw sync response: {}", rawBody);
+        }
+
+        // Einladungen immer annehmen (auch beim ersten Sync)
+        acceptPendingInvites(root);
+
+        // Beim ersten Sync (since == null) Nachrichten ignorieren — nur next_batch merken
+        if (since == null) {
+            log.info("Initial sync done. next_batch={}", nextBatch);
+        } else {
             List<MatrixEventParser.Incoming> incoming = MatrixEventParser.parseSync(root);
+            log.debug("Parsed {} incoming message(s)", incoming.size());
             for (MatrixEventParser.Incoming msg : incoming) {
+                log.info("Message received: sender={} roomId={} text={}", msg.sender(), msg.roomId(), msg.message());
                 try {
                     onMessage.accept(msg);
                 } catch (Exception e) {
