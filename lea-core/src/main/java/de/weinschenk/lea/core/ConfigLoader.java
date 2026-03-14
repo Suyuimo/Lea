@@ -41,19 +41,19 @@ public class ConfigLoader {
             Set<String> groups  = asStringSet(allow.get("groups"), "lea.allowlist.groups");
             LeaConfig.Allowlist allowlist = new LeaConfig.Allowlist(senders, groups);
 
-            // ---- lea.signal ----
-            Object signalObj = lea.get("signal");
-            if (!(signalObj instanceof Map<?, ?> signal)) {
-                throw new RuntimeException("Missing or invalid 'lea.signal' section.");
+            // ---- lea.matrix ----
+            Object matrixObj = lea.get("matrix");
+            if (!(matrixObj instanceof Map<?, ?> matrix)) {
+                throw new RuntimeException("Missing or invalid 'lea.matrix' section.");
             }
 
-            String rpcUrl = asString(signal.get("rpcUrl"), "lea.signal.rpcUrl");
-            String eventsUrl = asString(signal.get("eventsUrl"), "lea.signal.eventsUrl");
-            String account = asString(signal.get("account"), "lea.signal.account");
-            LeaConfig.Signal signalCfg = new LeaConfig.Signal(rpcUrl, eventsUrl, account);
+            String homeserverUrl = asString(matrix.get("homeserverUrl"), "lea.matrix.homeserverUrl");
+            String accessToken   = asString(matrix.get("accessToken"),   "lea.matrix.accessToken");
+            String userId        = asString(matrix.get("userId"),         "lea.matrix.userId");
+            LeaConfig.Matrix matrixCfg = new LeaConfig.Matrix(homeserverUrl, accessToken, userId);
 
             // ---- final ----
-            return new LeaConfig(modulesDir, allowlist, signalCfg);
+            return new LeaConfig(modulesDir, allowlist, matrixCfg);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to load config: " + configFile, e);

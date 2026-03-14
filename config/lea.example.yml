@@ -3,12 +3,12 @@ lea:
 
   allowlist:
     senders:
-      - "+4912345678"
-      - "+4911111111"
+      - "@alice:example.org"
+      - "@bob:example.org"
     groups:
-      - "GROUP_ID_EXAMPLE"
+      - "!roomid:example.org"
 
-  signal:
-    rpcUrl: "http://127.0.0.1:8080/api/v1/rpc"
-    eventsUrl: "http://127.0.0.1:8080/api/v1/events"
-    account: "+49DEINACCOUNT"
+  matrix:
+    homeserverUrl: "https://matrix.example.org"
+    accessToken: "syt_..."
+    userId: "@lea:example.org"

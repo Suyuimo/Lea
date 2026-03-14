@@ -1,8 +1,7 @@
 package de.weinschenk.lea.core;
 
 import de.weinschenk.lea.api.CommandRequest;
-import de.weinschenk.lea.core.signal.SignalEventParser;
-import de.weinschenk.lea.core.signal.SignalRpcClient;
+import de.weinschenk.lea.core.matrix.MatrixClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,40 +27,33 @@ public class Main {
         ModuleRegistry registry = new ModuleRegistry(modulesDir);
         log.info("Modules directory: {}", modulesDir.toAbsolutePath());
 
-        // === Signal Client ===
-        if (config.signal() == null) {
-            throw new IllegalStateException("Missing lea.signal in config.");
+        // === Matrix Client ===
+        if (config.matrix() == null) {
+            throw new IllegalStateException("Missing lea.matrix in config.");
         }
-        SignalRpcClient signal = new SignalRpcClient(
-                config.signal().rpcUrl(),
-                config.signal().eventsUrl(),
-                config.signal().account()
+        MatrixClient matrix = new MatrixClient(
+                config.matrix().homeserverUrl(),
+                config.matrix().accessToken()
         );
 
         // === Bot Context ===
-        CoreBotContext ctx = new CoreBotContext(Path.of("lea-test.txt"), signal);
+        CoreBotContext ctx = new CoreBotContext(Path.of("lea-test.txt"), matrix);
 
-        // === Events loop starten ===
-        signal.startEventsLoop(event -> {
-            SignalEventParser.parseReceive(event).ifPresentOrElse(in -> {
-                // Safety: ignore messages from ourselves (optional, aber praktisch)
-                if (config.signal().account() != null && config.signal().account().equals(in.sender())) {
-                    log.debug("Ignoring self-sent message from {}", in.sender());
-                    return;
-                }
+        // === Sync Loop starten ===
+        matrix.startEventsLoop(in -> {
+            // Eigene Nachrichten ignorieren
+            if (config.matrix().userId().equals(in.sender())) {
+                log.debug("Ignoring self-sent message from {}", in.sender());
+                return;
+            }
 
-                log.info("Incoming message sender={} groupId={} text={}",
-                        in.sender(),
-                        in.groupId().orElse("<dm>"),
-                        in.message()
-                );
+            log.info("Incoming message sender={} roomId={} text={}",
+                    in.sender(), in.roomId(), in.message());
 
-                onIncomingMessage(authz, registry, ctx, in.sender(), in.groupId(), in.message());
-
-            }, () -> log.debug("Ignored non-dataMessage receive event"));
+            onIncomingMessage(authz, registry, ctx, in.sender(), Optional.of(in.roomId()), in.message());
         });
 
-        log.info("Lea is running. Listening for Signal events…");
+        log.info("Lea is running. Listening for Matrix events…");
 
         // Prozess am Leben halten
         Thread.currentThread().join();
@@ -72,13 +64,13 @@ public class Main {
             ModuleRegistry registry,
             CoreBotContext ctx,
             String sender,
-            Optional<String> groupId,
+            Optional<String> roomId,
             String rawText
     ) {
         // === Authorization ===
-        if (!authz.isAllowed(sender, groupId)) {
-            log.warn("Unauthorized message ignored. sender={} groupId={}",
-                    sender, groupId.orElse("<dm>"));
+        if (!authz.isAllowed(sender, roomId)) {
+            log.warn("Unauthorized message ignored. sender={} roomId={}",
+                    sender, roomId.orElse("<unknown>"));
             return;
         }
 
@@ -93,7 +85,7 @@ public class Main {
 
         CommandRequest req = new CommandRequest(
                 sender,
-                groupId,
+                roomId,
                 parsed.command(),
                 parsed.args(),
                 rawText
