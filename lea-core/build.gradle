@@ -22,3 +22,14 @@ dependencies {
 application {
   mainClass = "de.weinschenk.lea.core.Main"
 }
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'de.weinschenk.lea.core.Main'
+    }
+    // Alle Dependencies mit einpacken
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

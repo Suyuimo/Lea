@@ -16,7 +16,7 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
 
         // === Config laden ===
-        Path configPath = Path.of("..", "config", "lea.yml").normalize();
+        Path configPath = Path.of("config", "lea.yml").normalize();
         LeaConfig config = ConfigLoader.load(configPath);
         log.info("Loaded config from {}", configPath.toAbsolutePath());
 
